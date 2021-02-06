@@ -1,4 +1,5 @@
 from lxml import html
+import threading
 import requests
 import time
 import os
@@ -41,33 +42,56 @@ class RanksTotais:
                 break
         return lst
 
-    def _processarDados(self):
+    def _separarListas(self, lista, quantasListas):
+        return (lista[i::quantasListas] for i in range(quantasListas))
+
+    def _pegarDadosURL(self, lista):
+        for x in range(len(lista)):
+            try:
+                pagina = requests.get(lista[x])
+                dados = html.fromstring(pagina.content)
+
+                # Buscam no código-fonte HTML da página as informações do nome do clan e do XP.
+                nomeClan = dados.xpath('//td[@class="clan_left"]//div[@class="clan_name"]/text()')
+                xp = dados.xpath('//td[@class="clan_left"]/text()')
+
+                # 'xp' é uma array com várias informações, mas só o elemento da posição 4 que é o XP total.
+                clan = [nomeClan[0], self._transformar(xp[4])] 
+                
+                self.total.append(clan)
+
+                print(f"Informações de '{clan[0]}' coletadas com sucesso.")
+            except:
+                print(f"Houve um erro na leitura da URL '{lista[x]}', e portanto ela foi ignorada.")
+
+    def _processarDados(self, arquivo):
         try:
-            listaClans = open("clans.txt", "r")
+            listaClans = open(arquivo, "r")
 
             # Tem que ser com .splitlines() pra não ficar o "\n" no final da string da URL.
             linhas = listaClans.read().splitlines()
             listaClans.close()
 
+            # Isso aqui vai separar os links em duas listas, pra serem processadas por dois threads.
+            linhas = list(self._separarListas(linhas, 3))
+            primeiroGrupo = linhas[0]
+            segundoGrupo = linhas[1]
+            terceiroGrupo = linhas[2]
+
             print("Coletando informações...\n")
 
-            for x in range(len(linhas)):
-                try:
-                    pagina = requests.get(linhas[x])
-                    dados = html.fromstring(pagina.content)
+            # Vai criar 3 threads, que vão coletar os dados.
+            thread1 = threading.Thread(target=self._pegarDadosURL,args=(primeiroGrupo,), daemon=True)
+            thread2 = threading.Thread(target=self._pegarDadosURL,args=(segundoGrupo,), daemon=True)
+            thread3 = threading.Thread(target=self._pegarDadosURL,args=(terceiroGrupo,), daemon=True)
+            thread1.start()
+            thread2.start()
+            thread3.start()
 
-                    # Buscam no código-fonte HTML da página as informações do nome do clan e do XP.
-                    nomeClan = dados.xpath('//td[@class="clan_left"]//div[@class="clan_name"]/text()')
-                    xp = dados.xpath('//td[@class="clan_left"]/text()')
-
-                    # 'xp' é uma array com várias informações, mas só o elemento da posição 4 que é o XP total.
-                    clan = [nomeClan[0], self._transformar(xp[4])] 
-                    
-                    self.total.append(clan)
-
-                    print(clan)
-                except:
-                    print(f"Houve um erro na leitura da URL '{linhas[x]}', e portanto ela foi ignorada.")
+            # O código vai esperar os threads terminarem antes de continuar.
+            thread1.join()
+            thread2.join()
+            thread3.join()   
         except:
             x = input("Arquivo 'clans.txt' não encontrado.\n\nPressione 'Enter' para continuar.")
         
@@ -83,7 +107,7 @@ class RanksTotais:
         return numeros
 
     def gerarRanks(self):
-        self._processarDados()
+        self._processarDados("clans.txt")
 
         print("\n\nGerando arquivo...")
 
@@ -117,38 +141,28 @@ class RanksMesPassado(RanksTotais):
         lst = "".join(lst)
         return float(lst)
 
-    def _processarDados(self):
-        try:
-            listaClans = open("clans_mensal.txt", "r")
+    def _pegarDadosURL(self, lista):
+        for x in range(len(lista)):
+            try:
+                pagina = requests.get(lista[x])
+                dados = html.fromstring(pagina.content)
 
-            linhas = listaClans.read().splitlines()
-            listaClans.close()
+                nomeClan = dados.xpath('//td[@class="clan_left"]//div[@class="clan_name"]/text()')
 
-            print("Coletando informações...\n")
+                xp = dados.xpath('//td[@class="clan_right"]//div[@class="clan_trk_wrap"]//table[@class="regular"]//b/text()')
 
-            for x in range(len(linhas)):
-                try:
-                    pagina = requests.get(linhas[x])
-                    dados = html.fromstring(pagina.content)
+                primeiroLugar = dados.xpath('//td[@class="clan_right"]//div[@class="clan_trk_wrap"]//table[@class="regular"]//td[@class="clan_td clan_rsn2"]//a/text()')
 
-                    nomeClan = dados.xpath('//td[@class="clan_left"]//div[@class="clan_name"]/text()')
+                clan = [nomeClan[0], self._transformar(xp[1]), primeiroLugar[0]] 
+                
+                self.total.append(clan)
 
-                    xp = dados.xpath('//td[@class="clan_right"]//div[@class="clan_trk_wrap"]//table[@class="regular"]//b/text()')
-
-                    primeiroLugar = dados.xpath('//td[@class="clan_right"]//div[@class="clan_trk_wrap"]//table[@class="regular"]//td[@class="clan_td clan_rsn2"]//a/text()')
-
-                    clan = [nomeClan[0], self._transformar(xp[1]), primeiroLugar[0]] 
-                    
-                    self.total.append(clan)
-
-                    print(f"Informações de {clan[0]} coletadas com sucesso.")
-                except:
-                    print(f"Houve um erro na leitura da URL '{linhas[x]}', e portanto ela foi ignorada.")
-        except:
-            x = input("Arquivo 'clans_mensal.txt' não encontrado.\n\nPressione 'Enter' para continuar.")
+                print(f"Informações de '{clan[0]}' coletadas com sucesso.")
+            except:
+                print(f"Houve um erro na leitura da URL '{lista[x]}', e portanto ela foi ignorada.")
 
     def gerarRanks(self):
-        self._processarDados()
+        self._processarDados("clans_mensal.txt")
 
         print("\n\nGerando arquivo...")
 
@@ -173,32 +187,40 @@ class RanksMesAtual(RanksMesPassado):
         # Usei isso aqui só pra não ter que copiar e colar (denovo) o mesmo método só pra mudar um único número.
         self.posicao = 3
 
-    def _processarDados(self):
-        try:
-            listaClans = open("clans_mensal.txt", "r")
+    def _pegarDadosURL(self, lista):
+        for x in range(len(lista)):
+            try:
+                pagina = requests.get(lista[x])
+                dados = html.fromstring(pagina.content)
 
-            linhas = listaClans.read().splitlines()
-            listaClans.close()
+                nomeClan = dados.xpath('//td[@class="clan_left"]//div[@class="clan_name"]/text()')
+                xp = dados.xpath('//td[@class="clan_left"]//td[@class="clan_td clan_td_stat_xpgain"]/text()')
 
-            print("Coletando informações...\n")
+                clan = [nomeClan[0], self._transformar(xp[self.posicao])] 
+                
+                self.total.append(clan)
 
-            for x in range(len(linhas)):
-                try:
-                    pagina = requests.get(linhas[x])
-                    dados = html.fromstring(pagina.content)
+                print(f"Informações de '{clan[0]}' coletadas com sucesso.")
+            except:
+                print(f"Houve um erro na leitura da URL '{lista[x]}', e portanto ela foi ignorada.")
 
-                    nome = dados.xpath('//td[@class="clan_left"]//div[@class="clan_name"]/text()')
-                    info = dados.xpath('//td[@class="clan_left"]//td[@class="clan_td clan_td_stat_xpgain"]/text()')
+    def gerarRanks(self):
+        self._processarDados("clans_mensal.txt")
 
-                    clan = [nome[0], self._transformar(info[self.posicao])] 
-                    
-                    self.total.append(clan)
+        print("\n\nGerando arquivo...")
 
-                    print(clan)
-                except:
-                    print(f"Houve um erro na leitura da URL '{linhas[x]}', e portanto ela foi ignorada.")
-        except:
-            x = input("Arquivo 'clans.txt' não encontrado.\n\nPressione 'Enter' para continuar.")
+        self.total = sorted(self.total, key=lambda x: x[1], reverse=True) 
+
+        self.total = self._formatoBrasileiro(self.total)
+
+        hoje = time.strftime("%d-%m-%Y %H-%M-%S")
+
+        with open(os.path.expanduser(f"~/Desktop/{self.nomeArquivo} {hoje}.txt"), "w") as f:
+            for i in range(len(self.total)):
+                f.write(f"{i + 1}º: {self.total[i][0]} — {self.total[i][1]}\n")
+        f.close()
+
+        x = input(f"\nArquivo '{self.nomeArquivo} {hoje}.txt' salvo na Área de Trabalho.\nPrecione 'Enter' para continuar.")
 
 class RanksDXP(RanksMesAtual):
     def __init__(self):
