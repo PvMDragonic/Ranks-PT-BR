@@ -123,7 +123,7 @@ class RanksTotais:
         # Cria um arquivo na área de trabalho do usuário, e então vai escrevendo linha por linha nele os clas e ranks.
         with open(os.path.expanduser(f"~/Desktop/{self.nomeArquivo} {hoje}.txt"), "w") as f:
             for i in range(len(self.total)):
-                f.write(f"{i + 1}º: {self.total[i][0]} — {self.total[i][1]}\n")
+                f.write(f"{i + 1}º: {self.total[i][0]}\n    XP total: {self.total[i][1]}\n\n")
         f.close()
 
         x = input(f"\nArquivo '{self.nomeArquivo} {hoje}.txt' salvo na Área de Trabalho.\nPrecione 'Enter' para continuar.")
@@ -152,12 +152,14 @@ class RanksMesPassado(RanksTotais):
                 xp = dados.xpath('//td[@class="clan_right"]//div[@class="clan_trk_wrap"]//table[@class="regular"]//b/text()')
 
                 primeiroLugar = dados.xpath('//td[@class="clan_right"]//div[@class="clan_trk_wrap"]//table[@class="regular"]//td[@class="clan_td clan_rsn2"]//a/text()')
+                
+                primeiroLugarXP = dados.xpath('//td[@class="clan_right"]//div[@class="clan_trk_wrap"]//table[@class="regular"]//td[@class="clan_td clan_xpgain_trk"]/text()')
 
-                clan = [nomeClan[0], self._transformar(xp[1]), primeiroLugar[0]] 
+                clan = [nomeClan[0], self._transformar(xp[1]), primeiroLugar[0], primeiroLugarXP[0].replace(",",".")] 
                 
                 self.total.append(clan)
 
-                print(f"Informações de '{clan[0]}' coletadas com sucesso.")
+                print(f"Informações de {clan[0]} coletadas com sucesso.")
             except:
                 print(f"Houve um erro na leitura da URL '{lista[x]}', e portanto ela foi ignorada.")
 
@@ -174,7 +176,7 @@ class RanksMesPassado(RanksTotais):
 
         with open(os.path.expanduser(f"~/Desktop/{self.nomeArquivo} {hoje}.txt"), "w") as f:
             for i in range(len(self.total)):
-                f.write(f"{i + 1}º: {self.total[i][0]} — {self.total[i][1]} — {self.total[i][2]}\n")
+                f.write(f"{i + 1}º: {self.total[i][0]}\n    XP total: {self.total[i][1]}\n    #1 lugar: {self.total[i][2]}\n    #1 lugar XP: {self.total[i][3]}\n\n")
         f.close()
 
         x = input(f"\nArquivo '{self.nomeArquivo} {hoje}.txt' salvo na Área de Trabalho.\nPrecione 'Enter' para continuar.")
@@ -217,7 +219,7 @@ class RanksMesAtual(RanksMesPassado):
 
         with open(os.path.expanduser(f"~/Desktop/{self.nomeArquivo} {hoje}.txt"), "w") as f:
             for i in range(len(self.total)):
-                f.write(f"{i + 1}º: {self.total[i][0]} — {self.total[i][1]}\n")
+                f.write(f"{i + 1}º: {self.total[i][0]}\n    XP total: {self.total[i][1]}\n\n")
         f.close()
 
         x = input(f"\nArquivo '{self.nomeArquivo} {hoje}.txt' salvo na Área de Trabalho.\nPrecione 'Enter' para continuar.")
