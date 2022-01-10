@@ -124,18 +124,6 @@ class MenuPrincipal:
             ATUAL = 3.0
 
             def tela_aviso_outdated():
-                def ignorar_clicado():
-                    self.frame_tela_aviso.destroy()
-                    self._rankear_clans_pt_br(clans, qual_rank, cem_porcento)
-
-                def atualizar_clicado():
-                    self.frame_tela_aviso.destroy()
-                    self.frame_que_uso_pra_tudo.destroy()
-                    self._selecionar_clans_pt_br(qual_rank)
-
-                def retornar_clicado():
-                    self.frame_tela_aviso.destroy()
-
                 frame_aviso = ttk.Frame(self.top)
                 frame_aviso.place(relx = 0.015, rely = 0.02, relheight = 0.96, relwidth = 0.97)
                 frame_aviso.configure(relief = 'groove')
