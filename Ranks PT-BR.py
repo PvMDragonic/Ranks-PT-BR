@@ -9,7 +9,8 @@ from lxml import html
 import tkinter.ttk as ttk
 import tkinter as tk
 import xlsxwriter
-import webbrowser  
+import webbrowser 
+import pyperclip 
 import requests
 import fasttext
 import json
@@ -268,7 +269,7 @@ class MenuPrincipal:
         self.label_rank_dxp.configure(font = self.font11)
         self.label_rank_dxp.configure(anchor = 'w')
         self.label_rank_dxp.configure(justify = 'left')
-        self.label_rank_dxp.configure(text = 'Rank geral — gera uma lista com o rank baseado no último/atual DXP.')
+        self.label_rank_dxp.configure(text = 'Rank DXP — gera uma lista com o rank baseado no último/atual DXP.')
 
         self.botao_rank_geral = ttk.Button(self.TFrame1, command = lambda: self._gerar_rank_clicado(1))
         self.botao_rank_geral.place(relx = 0.14, rely = 0.870, height = 35, width = 110)
@@ -411,6 +412,7 @@ class MenuPrincipal:
         botao_cancelar.place(relx = 0.400, rely = 0.885, height = 35, width = 116)        
 
     def _selecionar_clans_pt_br(self, botao_clicado):
+        global parar_progresso
         global cancelar_operacao
         global barra_progresso
         global clans_pt_br
@@ -434,7 +436,7 @@ class MenuPrincipal:
                 self.label_down_porcentagem.configure(text = '100%')
                 self.barra_progresso['value'] = '9150'    
                 sleep(2)
-
+                
                 self._gerar_rank(qual_rank = botao_clicado, json_criado = True)
 
             sys.exit()
@@ -475,7 +477,7 @@ class MenuPrincipal:
         Thread(target = thread).start()
 
     def _exibir_dados_clans(self, qual_rank):
-        """Mostra os dados salvos na lista 'clans_pt_br' em uma planílha, junto de opc pra salvar."""
+        """Mostra os dados salvos na lista 'clans_pt_br' em uma planílha, junto de opção pra salvar."""
         global clans_pt_br
 
         def retornar():
@@ -485,7 +487,7 @@ class MenuPrincipal:
         def salvar():
             def salvar_arqv(qual):
                 if qual == 1:  
-                    nome = f'Rank {tipo} {data_rank_criado}.txt'               
+                    nome = f'Rank {tipo} {data_rank_criado}.txt'              
                     with open(os.path.expanduser(f"~/Desktop/{nome}"), "w") as f:
                         if qual_rank != 3:
                             for i in range(1, len(self.cc)):
@@ -586,7 +588,33 @@ class MenuPrincipal:
 
         tabela.tag_configure('gray', background = '#ccccc0')
 
-        tabela['columns'] = ('Pos', 'Clã', 'Experiência', 'PrimeiroNome', 'PrimeiroXP')
+        def copiar_menu_popup():
+            for item in tabela.selection():
+                values = [tabela.item(item, 'text')]
+                values.extend(tabela.item(item, 'values'))
+                pyperclip.copy("\t".join(values))
+
+        def mostrar_menu_popup(event):
+            try:
+                popup.selection = tabela.set(tabela.identify_row(event.y))
+                popup.post(event.x_root, event.y_root)
+            finally:
+                popup.grab_release()
+
+        popup = tk.Menu(tabela, tearoff = 0)
+        popup.add_command(label = "Copiar", command = copiar_menu_popup)
+
+        tabela.bind("<ButtonRelease-3>", mostrar_menu_popup)
+
+        def copiar_ctrl_c(tree, event):
+            for item in tree.selection():
+                values = [tree.item(item, 'text')]
+                values.extend(tree.item(item, 'values'))
+                pyperclip.copy("\t".join(values))
+
+        tabela.bind("<Control-Key-c>", lambda x: copiar_da_tabela(tabela, x))
+
+        tabela['column'] = ('Pos', 'Clã', 'Experiência', 'PrimeiroNome', 'PrimeiroXP')
         tabela.column("#0", width = 0, stretch = tk.NO)
         tabela.column("Pos", anchor = tk.CENTER, width = 35, stretch = tk.NO)
         tabela.column("Clã", anchor = tk.CENTER, width = 134, stretch = tk.NO)
@@ -649,11 +677,9 @@ class MenuPrincipal:
                     self.cc[i][1] = str(self.cc[i][1]).replace(",",".")
 
                 if i % 2 == 0:
-                    tabela.insert(parent = '', index = 'end', iid = i,
-                        values = (f'{i}º', self.cc[i][0], self.cc[i][1]))
+                    tabela.insert(parent = '', index = 'end', iid = i, values = (f'{i}º', self.cc[i][0], self.cc[i][1]))
                 else:
-                    tabela.insert(parent = '', index = 'end', iid = i, tag = 'gray',
-                        values = (f'{i}º', self.cc[i][0], self.cc[i][1]))
+                    tabela.insert(parent = '', index = 'end', iid = i, tag = ('gray', ), values = (f'{i}º', self.cc[i][0], self.cc[i][1]))
         else:
             for i in range(1, len(self.cc)):
                 if type(self.cc[i][1]) == int:
@@ -662,14 +688,13 @@ class MenuPrincipal:
                     self.cc[i][3] = self.cc[i][1].replace(",",".")
 
                 if i % 2 == 0:
-                    tabela.insert(parent = '', index = 'end', iid = i,
-                        values = (f'{i}º', self.cc[i][0], self.cc[i][1], self.cc[i][2], self.cc[i][3]))
+                    tabela.insert(parent = '', index = 'end', iid = i, values = (f'{i}º', self.cc[i][0], self.cc[i][1], self.cc[i][2], self.cc[i][3]))
                 else:
-                    tabela.insert(parent = '', index = 'end', iid = i, tag = 'gray',
-                        values = (f'{i}º', self.cc[i][0], self.cc[i][1], self.cc[i][2], self.cc[i][3]))
+                    tabela.insert(parent = '', index = 'end', iid = i, tag = ('gray', ), values = (f'{i}º', self.cc[i][0], self.cc[i][1], self.cc[i][2], self.cc[i][3]))
 
     def _rankear_clans_pt_br(self, clans, qual_rank, cem_porcento):
         """Coleta os dados individuais de cada clã pt-br para depois gerar uma tabela com os ranques."""
+        global parar_progresso
         global cancelar_operacao
         global barra_progresso
         global clans_pt_br
@@ -692,11 +717,12 @@ class MenuPrincipal:
                 self.label_down_porcentagem.configure(text = '100%')
                 sleep(3)
 
-                self._exibir_dados_clans()
+                if cancelar_operacao.value == 0:
+                    self._exibir_dados_clans(qual_rank)
 
             sys.exit()
 
-        def thread():
+        def coleta_dados():
             """Gerencia os threads que coletam os dados dos clãs pt-br sem travar o resto do código."""
             global parar_progresso
 
@@ -708,8 +734,7 @@ class MenuPrincipal:
             t1.start(); t2.start(); t3.start()
             t1.join(); t2.join(); t3.join()
 
-            if cancelar_operacao.value == 0:
-                self._exibir_dados_clans(qual_rank)
+            parar_progresso.value = 1
 
             sys.exit()
 
@@ -726,7 +751,7 @@ class MenuPrincipal:
         parar_progresso.value = 0  
         clans_pt_br[:] = []
 
-        Thread(target = thread).start()
+        Thread(target = coleta_dados).start()
         Thread(target = atualizar_texto).start()
 
     def _gerar_rank(self, qual_rank = 0, json_criado = False):
