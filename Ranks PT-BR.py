@@ -20,35 +20,45 @@ import os
 # Porque todas essas funções tão aqui ao invés de dentro da classe? Porque o Tkinter
 # entra em choque com multiprocessing e essa foi a solução mais preguiçosa que achei.
 def thread_rank_geral(clans, nome_clan, barra_progresso, cancelar_operacao, clans_pt_br):
+    fasttext.FastText.eprint = lambda x: None
+    model = fasttext.load_model('lid.176.ftz')
+
     min = 0
     while min < len(clans) and cancelar_operacao.value == 0:
         dados = html.fromstring(requests.get(clans[min][1]).content)
         clan_xp = dados.xpath('.//td[@class="clan_left"]/text()')
+        clans_descr = [tag.text_content() for tag in dados.xpath('.//div[@class = "clan_info"]')]
 
         barra_progresso.value +=  1
 
         if len(clan_xp) > 0:
-            clans_pt_br.append([clans[min][0], clan_xp[4]])
-            nome_clan.value = '"' + clans[min][0] + '" analisado...'
+            if clans_descr[0] == 'This clan has no description.' or model.predict(clans_descr[0].replace('\n',' '), k = 1)[0] == ('__label__pt',):
+                clans_pt_br.append([clans[min][0], clan_xp[4]])
+                nome_clan.value = '"' + clans[min][0] + '" analisado...'
 
         min +=  1
 
 def thread_rank_mes_atual(clans, nome_clan, barra_progresso, cancelar_operacao, clans_pt_br):
+    fasttext.FastText.eprint = lambda x: None
+    model = fasttext.load_model('lid.176.ftz')
+
     min = 0
     while min < len(clans) and cancelar_operacao.value == 0:
         dados = html.fromstring(requests.get(clans[min][1]).content)
         clan_xp = [tag.text_content() for tag in dados.xpath('.//table[@class = "regular"]//tr')]
         clan_rank = [tag.text_content() for tag in dados.xpath('.//td[@class = "clan_td clan_td_stat_rank"]')]
+        clans_descr = [tag.text_content() for tag in dados.xpath('.//div[@class = "clan_info"]')]
 
         barra_progresso.value +=  1
 
         if len(clan_xp) > 0:
             for i in range(len(clan_xp)):
                 if 'Month' in clan_xp[i]:
-                    # 'clan_xp[i]' vem no formato "Month" + "123" + "1,234,567,890" (tudo junto, numa só string), mas só a terceira parte que é interessante.
-                    # 'clan_xp' tem 5 elementos e 'clan_rank' tem 4, e por isso tem que ser 'clan_rank[i-1]', pra sincronizar os dois.
-                    clans_pt_br.append([clans[min][0], clan_xp[i].replace('Month', "").replace(clan_rank[i-1], "", 1)])
-                    nome_clan.value = '"' + clans[min][0] + '" analisado...'
+                    if clans_descr[0] == 'This clan has no description.' or model.predict(clans_descr[0].replace('\n',' '), k = 1)[0] == ('__label__pt',):
+                        # 'clan_xp[i]' vem no formato "Month 123 1,234,567,890" (tudo junto, numa só string), mas só a terceira parte que é interessante.
+                        # 'clan_xp' tem 5 elementos e 'clan_rank' tem 4, e por isso tem que ser 'clan_rank[i-1]', pra sincronizar os dois.
+                        clans_pt_br.append([clans[min][0], clan_xp[i].replace('Month', "").replace(clan_rank[i-1], "", 1)])
+                        nome_clan.value = '"' + clans[min][0] + '" analisado...'
 
         min +=  1
 
@@ -62,28 +72,33 @@ def thread_rank_mes_pass(clans, nome_clan, barra_progresso, cancelar_operacao, c
 
         barra_progresso.value +=  1
 
-        if len(xp_total) > 0:                   
+        if len(xp_total) > 0: 
             clans_pt_br.append([clans[min][0], xp_total[1], primeiro_lugar_nome[0], primeiro_lugar_xp[0]])
             nome_clan.value = '"' + clans[min][0] + '" analisado...'
 
         min +=  1
 
 def thread_rank_dxp(clans, nome_clan, barra_progresso, cancelar_operacao, clans_pt_br):
+    fasttext.FastText.eprint = lambda x: None
+    model = fasttext.load_model('lid.176.ftz')
+
     min = 0
     while min < len(clans) and cancelar_operacao.value == 0:
         dados = html.fromstring(requests.get(clans[min][1]).content)
         clan_xp = [tag.text_content() for tag in dados.xpath('.//table[@class = "regular"]//tr')]
         clan_rank = [tag.text_content() for tag in dados.xpath('.//td[@class = "clan_td clan_td_stat_rank"]')]
+        clans_descr = [tag.text_content() for tag in dados.xpath('.//div[@class = "clan_info"]')]
 
         barra_progresso.value +=  1
 
         if len(clan_xp) > 0:
             for i in range(len(clan_xp)):
                 if 'DXP Weekend' in clan_xp[i]:
-                    # 'clan_xp[i]' vem no formato "DXP Weekend" + "123" + "1,234,567,890" (tudo junto, numa só string), mas só a terceira parte que é interessante.
-                    # 'clan_xp' tem 5 elementos e 'clan_rank' tem 4, e por isso tem que ser 'clan_rank[i-1]', pra sincronizar os dois.
-                    clans_pt_br.append([clans[min][0], clan_xp[i].replace('DXP Weekend', "").replace(clan_rank[i-1], "", 1)])
-                    nome_clan.value = '"' + clans[min][0] + '" analisado...'
+                    if clans_descr[0] == 'This clan has no description.' or model.predict(clans_descr[0].replace('\n',' '), k = 1)[0] == ('__label__pt',):
+                        # 'clan_xp[i]' vem no formato "DXP Weekend 123 1,234,567,890" (tudo junto, numa só string), mas só a terceira parte que é interessante.
+                        # 'clan_xp' tem 5 elementos e 'clan_rank' tem 4, e por isso tem que ser 'clan_rank[i-1]', pra sincronizar os dois.
+                        clans_pt_br.append([clans[min][0], clan_xp[i].replace('DXP Weekend', "").replace(clan_rank[i-1], "", 1)])
+                        nome_clan.value = '"' + clans[min][0] + '" analisado...'
 
         min +=  1
 
@@ -97,17 +112,12 @@ def thread_runeclan(clans_pt_br, nome_clan, barra_progresso, cancelar_operacao, 
         clans_links = list(dict.fromkeys(dados.xpath('.//td[@class = "clans_name"]//a/@href')))
         clans_motto = [tag.text_content() for tag in dados.xpath('.//span[@class = "clans_motto"]')]
 
-        clans = []
         for nome, link, motto in zip(clans_nomes, clans_links, clans_motto):
-            clans.append([nome, 'https://www.runeclan.com' + link, motto.replace("\"", "")])
+            barra_progresso.value +=  1          
 
-        for clan in clans:
-            barra_progresso.value +=  1
-            resultado_motto = model.predict(clan[2], k = 1)           
-        
-            if resultado_motto[0] == ('__label__pt',):
-                clans_pt_br.append([clan[0], clan[1]])
-                nome_clan.value = '"' + clan[0] + '" identificado...'
+            if model.predict(motto.replace("\"", ""), k = 1)[0] == ('__label__pt',): # Verifica se é clã PT-BR
+                clans_pt_br.append([nome, 'https://www.runeclan.com' + link])
+                nome_clan.value = '"' + nome + '" identificado...'
 
         min +=  1
 
@@ -612,7 +622,7 @@ class MenuPrincipal:
                 values.extend(tree.item(item, 'values'))
                 pyperclip.copy("\t".join(values))
 
-        tabela.bind("<Control-Key-c>", lambda x: copiar_da_tabela(tabela, x))
+        tabela.bind("<Control-Key-c>", lambda x: copiar_ctrl_c(tabela, x))
 
         tabela['column'] = ('Pos', 'Clã', 'Experiência', 'PrimeiroNome', 'PrimeiroXP')
         tabela.column("#0", width = 0, stretch = tk.NO)
@@ -661,14 +671,14 @@ class MenuPrincipal:
         quant_ignorados.configure(font = self.font9)
         quant_ignorados.configure(anchor = 'nw')
         quant_ignorados.configure(justify = 'right')
-        quant_ignorados.configure(text = f'Clãs inativos: {tam_total - len(self.cc)}')
+        quant_ignorados.configure(text = f'Clãs inativos: {tam_total - (len(self.cc) - 1)}')
 
         quant_total = ttk.Label(self.frame_que_uso_pra_tudo)
         quant_total.place(relx = 0.03, rely = 0.08, height = 21, width = 150)
         quant_total.configure(font = self.font9)
         quant_total.configure(anchor = 'nw')
         quant_total.configure(justify = 'right')
-        quant_total.configure(text = f'Clãs rankeados: {len(self.cc)}')
+        quant_total.configure(text = f'Clãs rankeados: {len(self.cc) - 1}')
 
         if qual_rank != 3:
             for i in range(1, len(self.cc)):
@@ -685,7 +695,7 @@ class MenuPrincipal:
                 if type(self.cc[i][1]) == int:
                     self.cc[i][1] = format(self.cc[i][1],",")
                     self.cc[i][1] = str(self.cc[i][1]).replace(",",".")
-                    self.cc[i][3] = self.cc[i][1].replace(",",".")
+                    self.cc[i][3] = self.cc[i][3].replace(",",".")
 
                 if i % 2 == 0:
                     tabela.insert(parent = '', index = 'end', iid = i, values = (f'{i}º', self.cc[i][0], self.cc[i][1], self.cc[i][2], self.cc[i][3]))
