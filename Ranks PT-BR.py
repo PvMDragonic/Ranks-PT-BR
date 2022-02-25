@@ -17,9 +17,8 @@ import json
 import sys
 import os
 
-# Porque todas essas funções tão aqui ao invés de dentro da classe? Porque o Tkinter
-# entra em choque com multiprocessing e essa foi a solução mais preguiçosa que achei.
 def thread_rank_geral(clans, nome_clan, barra_progresso, cancelar_operacao, clans_pt_br):
+    """Busca os dados para fazer o ranking geral."""
     fasttext.FastText.eprint = lambda x: None
     model = fasttext.load_model('lid.176.ftz')
 
@@ -39,6 +38,7 @@ def thread_rank_geral(clans, nome_clan, barra_progresso, cancelar_operacao, clan
         min +=  1
 
 def thread_rank_mes_atual(clans, nome_clan, barra_progresso, cancelar_operacao, clans_pt_br):
+    """Busca os dados para fazer o ranking do mês atual."""
     fasttext.FastText.eprint = lambda x: None
     model = fasttext.load_model('lid.176.ftz')
 
@@ -63,6 +63,7 @@ def thread_rank_mes_atual(clans, nome_clan, barra_progresso, cancelar_operacao, 
         min +=  1
 
 def thread_rank_mes_pass(clans, nome_clan, barra_progresso, cancelar_operacao, clans_pt_br):
+    """Busca os dados para fazer o ranking do mês anterior ao atual."""
     min = 0
     while min < len(clans) and cancelar_operacao.value == 0:
         dados = html.fromstring(requests.get(clans[min][1] + '/xp-tracker?skill=2&criteria_set1=last_month').content)
@@ -79,6 +80,7 @@ def thread_rank_mes_pass(clans, nome_clan, barra_progresso, cancelar_operacao, c
         min +=  1
 
 def thread_rank_dxp(clans, nome_clan, barra_progresso, cancelar_operacao, clans_pt_br):
+    """Busca os dados para fazer o ranking de Double XP."""
     fasttext.FastText.eprint = lambda x: None
     model = fasttext.load_model('lid.176.ftz')
 
@@ -98,11 +100,12 @@ def thread_rank_dxp(clans, nome_clan, barra_progresso, cancelar_operacao, clans_
                         # 'clan_xp[i]' vem no formato "DXP Weekend 123 1,234,567,890" (tudo junto, numa só string), mas só a terceira parte que é interessante.
                         # 'clan_xp' tem 5 elementos e 'clan_rank' tem 4, e por isso tem que ser 'clan_rank[i-1]', pra sincronizar os dois.
                         clans_pt_br.append([clans[min][0], clan_xp[i].replace('DXP Weekend', "").replace(clan_rank[i-1], "", 1)])
-                        nome_clan.value = '"' + clans[min][0] + '" analisado...'
+                        nome_clan.value = f'"{clans[min][0]}" analisado...'
 
         min +=  1
 
 def thread_runeclan(clans_pt_br, nome_clan, barra_progresso, cancelar_operacao, min, max):
+    """Thread executado pelos Processos que buscam o RuneClan. Valida se o Clã é PT-BR e então salva ele na lista 'clans_pt_br'."""
     fasttext.FastText.eprint = lambda x: None
     model = fasttext.load_model('lid.176.ftz')
     
@@ -122,6 +125,7 @@ def thread_runeclan(clans_pt_br, nome_clan, barra_progresso, cancelar_operacao, 
         min +=  1
 
 def procurar_runeclan(clans_pt_br, nome_clan, barra_progresso, cancelar_operacao, min):
+    """Função executada por vários Processos para buscar os Clãs PT-BR do RuneClan."""
     t1 = Thread(target = thread_runeclan, args = (clans_pt_br, nome_clan, barra_progresso, cancelar_operacao, min, min+83, ))
     t2 = Thread(target = thread_runeclan, args = (clans_pt_br, nome_clan, barra_progresso, cancelar_operacao, min+83+1, min+83*2, ))
     t3 = Thread(target = thread_runeclan, args = (clans_pt_br, nome_clan, barra_progresso, cancelar_operacao, min+83*2+1, min+83*3, ))
@@ -132,6 +136,7 @@ def procurar_runeclan(clans_pt_br, nome_clan, barra_progresso, cancelar_operacao
 class MenuPrincipal:
     def __init__(self):
         def verificar_update():
+            """Exibe uma tela de 'Nova versão disponível' quando encontra uma Release (no GitHub) com valor maior do que ATUAL."""
             ATUAL = 3.0
 
             def tela_aviso_outdated():
@@ -212,7 +217,6 @@ class MenuPrincipal:
         _bgcolor = '#d9d9d9'  # X11 color: 'gray85'
         _fgcolor = '#000000'  # X11 color: 'black'
         _compcolor = '#d9d9d9' # X11 color: 'gray85'
-        _ana1color = '#d9d9d9' # X11 color: 'gray85'
         _ana2color = '#ececec' # Closest X11 color: 'gray92'
         
         self.font9 = '-family {Segoe UI} -size 10'
@@ -373,8 +377,7 @@ class MenuPrincipal:
         botao_retornar.place(relx = 0.600, rely = 0.870, height = 35, width = 116)
 
     def _tela_coletando_dados(self):
-        # Porque essa nomenclatura? Porque eu acabo chamando isso aqui de todos os cantos do código,
-        # pra reutilizar em vez de ter que destuir e daí recriar. Três érres que chama, né? Bruh.
+        """Tela/frame genérico que é usado por todos os cantos do código."""
         self.frame_que_uso_pra_tudo = tk.Frame(self.top)
         self.frame_que_uso_pra_tudo.place(relx = 0.015, rely = 0.02, relheight = 0.96, relwidth = 0.97)
         self.frame_que_uso_pra_tudo.configure(relief = 'groove')
@@ -422,6 +425,7 @@ class MenuPrincipal:
         botao_cancelar.place(relx = 0.400, rely = 0.885, height = 35, width = 116)        
 
     def _selecionar_clans_pt_br(self, botao_clicado):
+        """Coleta os nomes de Clãs PT-BR e salva eles em 'clans_pt_br.json'."""
         global parar_progresso
         global cancelar_operacao
         global barra_progresso
@@ -505,7 +509,6 @@ class MenuPrincipal:
                         else:
                             for i in range(1, len(self.cc)):
                                 f.write(f"{i}º: {self.cc[i][0]}\n    XP total: {self.cc[i][1]}\n    1º lugar: {self.cc[i][2]}\n    1º lugar XP: {self.cc[i][3]}\n\n")
-                        f.close()
                 elif qual == 2:
                     nome = f'Rank {tipo} {data_rank_criado}.xlsx' 
                     workbook = xlsxwriter.Workbook(os.path.expanduser(f"~/Desktop/{nome}"))
@@ -524,12 +527,10 @@ class MenuPrincipal:
                             worksheet1.write(f'D{i}', self.cc[i][3])
 
                     workbook.close()
-                else:
+                elif qual == 3:
                     nome = f'Rank {tipo} {data_rank_criado}.json'
                     with open(os.path.expanduser(f"~/Desktop/{nome}"), "w") as f:
-                        del self.cc[0]
-                        json.dump(self.cc, f, indent = 4)
-                        f.close()
+                        json.dump(self.cc[1:], f, indent = 4)
 
                 label_salvar_explicacao.configure(text = f'O arquivo "{nome}"\nfoi salvo na Área de Trabalho com sucesso!')
                 botao_txt.destroy()
@@ -588,12 +589,11 @@ class MenuPrincipal:
         botao_salvar = ttk.Button(self.frame_que_uso_pra_tudo, text = 'Salvar', command = salvar)
         botao_salvar.place(relx = 0.855, rely = 0.025, height = 30, width = 80)
         
+        # Cria o scroll da tabela de ranking.
         scroll_vertical = ttk.Scrollbar(frame_exibir_ranks)
         scroll_vertical.pack(side = tk.RIGHT, fill = tk.Y)
-
         tabela = ttk.Treeview(frame_exibir_ranks, yscrollcommand = scroll_vertical.set)
         tabela.pack(expand = True, fill = tk.BOTH)
-
         scroll_vertical.config(command = tabela.yview)
 
         tabela.tag_configure('gray', background = '#ccccc0')
@@ -611,9 +611,9 @@ class MenuPrincipal:
             finally:
                 popup.grab_release()
 
+        # Faz um menu pop-up se clicar com o botão direito na tabela.
         popup = tk.Menu(tabela, tearoff = 0)
         popup.add_command(label = "Copiar", command = copiar_menu_popup)
-
         tabela.bind("<ButtonRelease-3>", mostrar_menu_popup)
 
         def copiar_ctrl_c(tree, event):
@@ -622,8 +622,10 @@ class MenuPrincipal:
                 values.extend(tree.item(item, 'values'))
                 pyperclip.copy("\t".join(values))
 
+        # Permite copiar valores da tabela.
         tabela.bind("<Control-Key-c>", lambda x: copiar_ctrl_c(tabela, x))
 
+        # Cria as colunas da tabela de ranking.
         tabela['column'] = ('Pos', 'Clã', 'Experiência', 'PrimeiroNome', 'PrimeiroXP')
         tabela.column("#0", width = 0, stretch = tk.NO)
         tabela.column("Pos", anchor = tk.CENTER, width = 35, stretch = tk.NO)
@@ -632,10 +634,12 @@ class MenuPrincipal:
         tabela.column("PrimeiroNome", anchor = tk.CENTER, width = 134, stretch = tk.NO)
         tabela.column("PrimeiroXP", anchor = tk.CENTER, width = 134, stretch = tk.NO)
 
-        tabela.heading("#0",text = "", anchor = tk.CENTER)
+        # Cria o header da tabela de ranking.
+        tabela.heading("#0", text = "", anchor = tk.CENTER)
         tabela.heading("Pos", text = "Pos.", anchor = tk.CENTER)
         tabela.heading("Clã", text = "Clã", anchor = tk.CENTER)
         tabela.heading("Experiência", text = "Experiência", anchor = tk.CENTER)
+
         if qual_rank == 3:
             tabela.heading("PrimeiroNome", text = "1º lugar", anchor = tk.CENTER)
             tabela.heading("PrimeiroXP", text = "1º lugar EXP", anchor = tk.CENTER)
@@ -647,10 +651,18 @@ class MenuPrincipal:
         if self.cc == []:
             if qual_rank != 3:
                 for i in range(len(clans_pt_br)):
-                    self.cc.append([clans_pt_br[i][0], int(clans_pt_br[i][1].replace(",",""))])
+                    self.cc.append([
+                        clans_pt_br[i][0], 
+                        int(clans_pt_br[i][1].replace(",",""))
+                    ])
             else:
                 for i in range(len(clans_pt_br)):
-                    self.cc.append([clans_pt_br[i][0], int(clans_pt_br[i][1].replace(",","")), clans_pt_br[i][2], clans_pt_br[i][3]])
+                    self.cc.append([
+                        clans_pt_br[i][0], 
+                        int(clans_pt_br[i][1].replace(",","")), 
+                        clans_pt_br[i][2], 
+                        clans_pt_br[i][3]
+                    ])
     
             self.cc.sort(key = lambda x: x[1], reverse = True)
             self.cc.insert(0, qual_rank)
@@ -765,15 +777,19 @@ class MenuPrincipal:
         Thread(target = atualizar_texto).start()
 
     def _gerar_rank(self, qual_rank = 0, json_criado = False):
+        """Mostra o ranking escolhido pelo usuário na tela inicial."""
         def escolher_titulo():
             return { 1 : 'rank geral', 2 : 'rank mês atual', 3 : 'rank mês passado', 4 : 'rank Double XP' }.get(qual_rank)
 
-        if json_criado: # Nesse caso eu reutilizo o que já existe, pra não ter que destruir e daí recriar em seguida.       
-            self.label_titulo_pra_tudo.configure(text = 'Gerando ' + escolher_titulo())
-        else:
+        # Nesse caso eu reutilizo o que já existe, pra não ter que destruir e daí recriar em seguida.
+        if json_criado:        
             self._tela_coletando_dados()
-            self.label_titulo_pra_tudo.configure(text = 'Gerando ' + escolher_titulo())
 
+        self.label_titulo_pra_tudo.configure(text = f'Gerando {escolher_titulo()}')
+
+        # Se a pessoa pediu para ver de novo o último ranking que ela gerou, 
+        # os dados são puxados da lista 'clans_pt_br' diretamente, sem ter
+        # que repetir o processo de puxar do RuneClan de novo.
         if self.cc != [] and self.cc[0] == qual_rank:
             self._exibir_dados_clans(qual_rank)
         else:
@@ -781,25 +797,33 @@ class MenuPrincipal:
 
             with open('clans_pt_br.json') as f:
                 clans = json.load(f)
-                f.close()
 
             # Tem que se livrar do primeiro elemento, pra não atrapalhar mais pra frente.
             data_ultima_coleta = datetime.fromisoformat(clans.pop(0))
 
             if datetime.now() - data_ultima_coleta > timedelta(days = 30):
-                self._tela_aviso_outdated(data_ultima_coleta.strftime("%d/%m/%Y"), [clans[i::3] for i in range(3)], qual_rank, len(clans))
+                self._tela_aviso_outdated(
+                    data_ultima_coleta.strftime("%d/%m/%Y"), 
+                    [clans[i::3] for i in range(3)], 
+                    qual_rank, 
+                    len(clans)
+                )
             else:         
-                self._rankear_clans_pt_br([clans[i::3] for i in range(3)], qual_rank, len(clans))
+                self._rankear_clans_pt_br(
+                    [clans[i::3] for i in range(3)], 
+                    qual_rank, 
+                    len(clans)
+                )
 
-    # 'qual_botao' se refere aos botões no menu inicial — 1 à 4, da esquerda pra direita.
-    def _gerar_rank_clicado(self, qual_botao):
+    def _gerar_rank_clicado(self, rank_selecionado):
         """Chamado pelos botões no menu inicial do programa.""" 
         if file_exists('clans_pt_br.json'):
-            self._gerar_rank(qual_rank = qual_botao)
+            self._gerar_rank(qual_rank = rank_selecionado)
         else:
-            self._selecionar_clans_pt_br(qual_botao)
+            self._selecionar_clans_pt_br(rank_selecionado)
 
 if __name__ == '__main__':
+    # Variáveis que são compartilhadas entre Processos.
     clans_pt_br = Manager().list()
     nome_clan = Manager().Value(c_char_p, "")
     barra_progresso = Manager().Value('i', 0)
